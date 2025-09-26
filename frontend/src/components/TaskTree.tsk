@@ -1,0 +1,45 @@
+import React from "react";
+import { Paper, List, ListItem, ListItemText, IconButton, Button } from "@mui/material";
+import CheckIcon from '@mui/icons-material/Check';
+import DeleteIcon from '@mui/icons-material/Delete';
+import api from "../api/axios";
+
+export default function TaskTree({ tasks, onRefresh, projectId }: any) {
+  const markDone = async (id:number) => { await api.patch(`/tasks/${id}`, { status: "done" }); onRefresh(); };
+  const remove = async (id:number) => { await api.delete(`/tasks/${id}`); onRefresh(); };
+  const addSubtask = async (parentId:number) => {
+    const desc = prompt("Subtask description");
+    if(!desc) return;
+    await api.post("/tasks/", { description: desc, project_id: projectId, parent_id: parentId });
+    onRefresh();
+  };
+
+  const renderTask = (t:any, depth=0) => (
+    <div key={t.id} style={{marginLeft: depth*16}}>
+      <ListItem secondaryAction={
+        <>
+          <IconButton onClick={()=>markDone(t.id)}><CheckIcon/></IconButton>
+          <IconButton onClick={()=>addSubtask(t.id)}><Button size="small">↳</Button></IconButton>
+          <IconButton onClick={()=>remove(t.id)}><DeleteIcon/></IconButton>
+        </>
+      }>
+        <ListItemText primary={`${t.description} [${t.priority}] ${t.status}`} secondary={t.deadline ? new Date(t.deadline).toLocaleDateString() : ""}/>
+      </ListItem>
+      {t.subtasks && t.subtasks.map((s:any)=>renderTask(s, depth+1))}
+    </div>
+  );
+
+  return (
+    <Paper sx={{p:2}}>
+      <Button variant="contained" onClick={async ()=>{
+        const desc = prompt("Task description");
+        if(!desc || !projectId) return alert("Select a project");
+        await api.post("/tasks/", { description: desc, project_id: projectId });
+        onRefresh();
+      }}>Add Task</Button>
+      <List>
+        {tasks.map((t:any)=> renderTask(t))}
+      </List>
+    </Paper>
+  );
+}
