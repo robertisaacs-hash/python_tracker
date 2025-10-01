@@ -20,7 +20,11 @@ from . import models
 CLIENT_ID = os.getenv("AZURE_CLIENT_ID", "")
 CLIENT_SECRET = os.getenv("AZURE_CLIENT_SECRET", "")
 TENANT_ID = os.getenv("AZURE_TENANT_ID", "")
-AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
+AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}" if TENANT_ID else None
+if not CLIENT_ID or not CLIENT_SECRET or not TENANT_ID:
+    # we don't hard-fail here to allow some functionality without Azure configured,
+    # but log or raise in production if necessary
+    pass
 SCOPES = ["User.Read", "offline_access"]  # request refresh token
 GRAPH_ME = "https://graph.microsoft.com/v1.0/me"
 
