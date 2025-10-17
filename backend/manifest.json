@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "metadata": {
+    "appmode": "python-api",
+    "title": "Enterprise Project Tracker API",
+    "description": "Comprehensive project portfolio management system for global retail operations",
+    "entrypoint": "app.main:app"
+  },
+  "python": {
+    "version": "3.9",
+    "package_manager": "pip"
+  },
+  "environment": {
+    "PYTHONPATH": "/opt/rstudio-connect/mnt/app",
+    "DATABASE_URL": "sqlite:///./tracker.db",
+    "SECRET_KEY": "your-secret-key-change-in-production",
+    "ACCESS_TOKEN_EXPIRE_MINUTES": "10080"
+  },
+  "files": {
+    "app/**/*.py": {},
+    "alembic/**/*.py": {},
+    "alembic.ini": {},
+    "requirements.txt": {},
+    "startup.py": {}
+  }
+}

@@ -16,6 +16,11 @@ services:
       context: ./backend
     env_file:
       - ./backend/.env
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
     depends_on:
       - db
     ports:

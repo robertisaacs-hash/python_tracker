@@ -1,45 +1,184 @@
 import React from "react";
-import { Paper, List, ListItem, ListItemText, IconButton, Button } from "@mui/material";
+import { 
+  Paper, List, ListItem, ListItemText, IconButton, Button, 
+  Chip, Box, LinearProgress, Typography 
+} from "@mui/material";
 import CheckIcon from '@mui/icons-material/Check';
 import DeleteIcon from '@mui/icons-material/Delete';
+import PersonIcon from '@mui/icons-material/Person';
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import FlagIcon from '@mui/icons-material/Flag';
 import api from "../api/axios";
 
-export default function TaskTree({ tasks, onRefresh, projectId }: any) {
-  const markDone = async (id:number) => { await api.patch(`/tasks/${id}`, { status: "done" }); onRefresh(); };
-  const remove = async (id:number) => { await api.delete(`/tasks/${id}`); onRefresh(); };
-  const addSubtask = async (parentId:number) => {
+export default function EnhancedTaskTree({ tasks, onRefresh, projectId }) {
+  const markDone = async (id) => { 
+    await api.patch(`/tasks/${id}`, { status: "complete" }); 
+    onRefresh(); 
+  };
+  
+  const remove = async (id) => { 
+    await api.delete(`/tasks/${id}`); 
+    onRefresh(); 
+  };
+  
+  const addSubtask = async (parentId) => {
     const desc = prompt("Subtask description");
     if(!desc) return;
-    await api.post("/tasks/", { description: desc, project_id: projectId, parent_id: parentId });
+    await api.post("/tasks/", { 
+      description: desc, 
+      project_id: projectId, 
+      parent_id: parentId,
+      priority: "medium"
+    });
     onRefresh();
   };
 
-  const renderTask = (t:any, depth=0) => (
-    <div key={t.id} style={{marginLeft: depth*16}}>
-      <ListItem secondaryAction={
-        <>
-          <IconButton onClick={()=>markDone(t.id)}><CheckIcon/></IconButton>
-          <IconButton onClick={()=>addSubtask(t.id)}><Button size="small">↳</Button></IconButton>
-          <IconButton onClick={()=>remove(t.id)}><DeleteIcon/></IconButton>
-        </>
-      }>
-        <ListItemText primary={`${t.description} [${t.priority}] ${t.status}`} secondary={t.deadline ? new Date(t.deadline).toLocaleDateString() : ""}/>
+  const getPriorityColor = (priority) => {
+    switch(priority?.toLowerCase()) {
+      case "critical": return "error";
+      case "high": return "warning";
+      case "medium": return "info";
+      case "low": return "success";
+      default: return "default";
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch(status?.toLowerCase()) {
+      case "complete": return "success";
+      case "in_progress": return "warning";
+      case "backlog": return "default";
+      case "cancelled": return "error";
+      default: return "info";
+    }
+  };
+
+  const renderTask = (t, depth = 0) => (
+    <div key={t.id} style={{ marginLeft: depth * 16 }}>
+      <ListItem 
+        sx={{ 
+          border: '1px solid #e0e0e0', 
+          mb: 1, 
+          borderRadius: 1,
+          backgroundColor: depth > 0 ? '#f5f5f5' : 'white'
+        }}
+      >
+        <ListItemText 
+          primary={
+            <Box display="flex" alignItems="center" gap={1}>
+              <Typography variant="body1" sx={{ fontWeight: t.subtasks?.length > 0 ? 'bold' : 'normal' }}>
+                {t.title || t.description}
+              </Typography>
+              <Chip 
+                label={t.priority || "medium"} 
+                size="small" 
+                color={getPriorityColor(t.priority)}
+                icon={<FlagIcon />}
+              />
+              <Chip 
+                label={t.status || "backlog"} 
+                size="small" 
+                color={getStatusColor(t.status)}
+              />
+            </Box>
+          }
+          secondary={
+            <Box mt={1}>
+              {t.estimated_hours && (
+                <Typography variant="caption" color="textSecondary">
+                  Est: {t.estimated_hours}h
+                </Typography>
+              )}
+              {t.actual_hours && (
+                <Typography variant="caption" color="textSecondary" sx={{ ml: 2 }}>
+                  Actual: {t.actual_hours}h
+                </Typography>
+              )}
+              {t.deadline && (
+                <Box display="flex" alignItems="center" mt={0.5}>
+                  <ScheduleIcon fontSize="small" />
+                  <Typography variant="caption" sx={{ ml: 0.5 }}>
+                    Due: {new Date(t.deadline).toLocaleDateString()}
+                  </Typography>
+                </Box>
+              )}
+              {t.assigned_to && (
+                <Box display="flex" alignItems="center" mt={0.5}>
+                  <PersonIcon fontSize="small" />
+                  <Typography variant="caption" sx={{ ml: 0.5 }}>
+                    Assigned to: Resource #{t.assigned_to}
+                  </Typography>
+                </Box>
+              )}
+              {t.completion_percentage !== undefined && (
+                <Box mt={1}>
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={t.completion_percentage} 
+                    sx={{ height: 6, borderRadius: 3 }}
+                  />
+                  <Typography variant="caption" color="textSecondary">
+                    {t.completion_percentage}% complete
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          }
+        />
+        <Box>
+          <IconButton onClick={() => markDone(t.id)} size="small" color="success">
+            <CheckIcon />
+          </IconButton>
+          <Button 
+            size="small" 
+            onClick={() => addSubtask(t.id)}
+            variant="outlined"
+            sx={{ mx: 1, minWidth: 'auto', px: 1 }}
+          >
+            +Sub
+          </Button>
+          <IconButton onClick={() => remove(t.id)} size="small" color="error">
+            <DeleteIcon />
+          </IconButton>
+        </Box>
       </ListItem>
-      {t.subtasks && t.subtasks.map((s:any)=>renderTask(s, depth+1))}
+      {t.subtasks && t.subtasks.map((s) => renderTask(s, depth + 1))}
     </div>
   );
 
   return (
-    <Paper sx={{p:2}}>
-      <Button variant="contained" onClick={async ()=>{
-        const desc = prompt("Task description");
-        if(!desc || !projectId) return alert("Select a project");
-        await api.post("/tasks/", { description: desc, project_id: projectId });
-        onRefresh();
-      }}>Add Task</Button>
+    <Paper sx={{ p: 2 }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h6">Tasks</Typography>
+        <Button 
+          variant="contained" 
+          onClick={async () => {
+            const desc = prompt("Task description");
+            if (!desc || !projectId) return alert("Select a project");
+            await api.post("/tasks/", { 
+              description: desc, 
+              project_id: projectId,
+              priority: "medium",
+              status: "backlog"
+            });
+            onRefresh();
+          }}
+        >
+          Add Task
+        </Button>
+      </Box>
+      
       <List>
-        {tasks.map((t:any)=> renderTask(t))}
+        {tasks.map((t) => renderTask(t))}
       </List>
+      
+      {tasks.length === 0 && (
+        <Box textAlign="center" py={4}>
+          <Typography variant="body2" color="textSecondary">
+            No tasks yet. Create your first task to get started!
+          </Typography>
+        </Box>
+      )}
     </Paper>
   );
 }
